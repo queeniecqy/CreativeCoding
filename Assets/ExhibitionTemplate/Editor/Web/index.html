@@ -64,8 +64,6 @@
   progress { width: 220px; height: 10px; display: none; }
   .hint { color: var(--muted); font-size: 13px; margin-top: 6px; }
 
-  .gate { max-width: 360px; margin: 12vh auto; background: var(--panel); padding: 28px; border-radius: var(--radius); box-shadow: var(--shadow); text-align: center; }
-  .gate input { text-align: center; font-size: 24px; letter-spacing: .3em; margin: 14px 0; }
   .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--ink); color: #fff;
            padding: 12px 20px; border-radius: 10px; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: 90vw; }
   .toast.show { opacity: 1; }
@@ -75,14 +73,7 @@
 </head>
 <body>
 
-<div class="gate" id="gate">
-  <h2 style="margin:0">展覽作品上傳</h2>
-  <p style="color:var(--muted)">請輸入老師提供的 PIN 碼</p>
-  <input type="text" id="pinInput" inputmode="numeric" autocomplete="off" maxlength="8">
-  <button class="btn primary" id="pinBtn" style="width:100%">進入</button>
-</div>
-
-<div id="app" hidden>
+<div id="app">
   <header>
     <h1>展覽作品上傳</h1>
     <p>選擇你的組別與作品位置，上傳後會直接更新到 Unity 展場。</p>
@@ -152,27 +143,24 @@
 
 <script>
 const $ = id => document.getElementById(id);
-let PIN = localStorage.getItem('exhibitPin') || '';
 let state = null, curGroup = null, curWork = null;
 let boardFile = null, labelFile = null, labelMode = 'auto';
 
 // ───────── API ─────────
 async function api(path, opts = {}) {
-  const res = await fetch(path, { ...opts, headers: { 'X-Exhibit-Pin': PIN, ...(opts.headers || {}) } });
+  const res = await fetch(path, opts);
   let data; try { data = await res.json(); } catch { throw new Error('伺服器回應錯誤（Unity 是否開著？）'); }
-  if (res.status === 403) { showGate('PIN 碼錯誤'); throw new Error(data.error); }
   if (!data.ok) throw new Error(data.error || '發生錯誤');
   return data;
 }
 const q = o => Object.entries(o).map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
-const fileUrl = p => `/api/file?${q({ path: p, pin: PIN, t: Date.now() })}`;
+const fileUrl = p => `/api/file?${q({ path: p, t: Date.now() })}`;
 
 // 大檔案用 XHR 才能顯示進度
 function upload(params, blob, name) {
   return new Promise((resolve, reject) => {
     const x = new XMLHttpRequest();
     x.open('POST', '/api/upload?' + q({ ...params, name }));
-    x.setRequestHeader('X-Exhibit-Pin', PIN);
     x.upload.onprogress = e => { if (e.lengthComputable) { $('prog').value = e.loaded / e.total; } };
     x.onload = () => {
       let d; try { d = JSON.parse(x.responseText); } catch { return reject(new Error('伺服器回應錯誤')); }
@@ -182,19 +170,6 @@ function upload(params, blob, name) {
     x.send(blob);
   });
 }
-
-// ───────── PIN ─────────
-function showGate(msg) {
-  $('app').hidden = true; $('gate').hidden = false;
-  if (msg) toast(msg, true);
-  $('pinInput').focus();
-}
-$('pinBtn').onclick = async () => {
-  PIN = $('pinInput').value.trim();
-  try { await refresh(); localStorage.setItem('exhibitPin', PIN); $('gate').hidden = true; $('app').hidden = false; }
-  catch (e) { toast(e.message, true); }
-};
-$('pinInput').onkeydown = e => { if (e.key === 'Enter') $('pinBtn').click(); };
 
 // ───────── 列表 ─────────
 async function refresh() {
@@ -410,12 +385,8 @@ let toastTimer;
 function toast(msg, err) { const t = $('toast'); t.textContent = msg; t.className = 'toast show' + (err ? ' err' : ''); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.className = 'toast', 3500); }
 function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
-// 啟動：有記住的 PIN 就直接進
-(async () => {
-  if (!PIN) return showGate();
-  try { await refresh(); $('gate').hidden = true; $('app').hidden = false; }
-  catch (e) { showGate(e.message); }
-})();
+// 啟動
+refresh().catch(e => toast(e.message, true));
 </script>
 </body>
 </html>

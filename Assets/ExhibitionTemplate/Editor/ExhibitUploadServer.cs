@@ -35,16 +35,6 @@ public static class ExhibitUploadServer
     public static int Port { get => EditorPrefs.GetInt("ExhibitServer.port", 8787); set => EditorPrefs.SetInt("ExhibitServer.port", value); }
     public static bool AllowLan { get => EditorPrefs.GetBool("ExhibitServer.lan", true); set => EditorPrefs.SetBool("ExhibitServer.lan", value); }
     public static bool AutoSave { get => EditorPrefs.GetBool("ExhibitServer.autosave", true); set => EditorPrefs.SetBool("ExhibitServer.autosave", value); }
-    public static string Pin
-    {
-        get
-        {
-            var p = EditorPrefs.GetString("ExhibitServer.pin", "");
-            if (p.Length == 0) { p = UnityEngine.Random.Range(1000, 10000).ToString(); EditorPrefs.SetString("ExhibitServer.pin", p); }
-            return p;
-        }
-        set { if (value != EditorPrefs.GetString("ExhibitServer.pin", "")) EditorPrefs.SetString("ExhibitServer.pin", value); }
-    }
 
     public static bool Running => listener != null;
     public static readonly List<string> Log = new List<string>();
@@ -200,10 +190,6 @@ public static class ExhibitUploadServer
     {
         if (r.method == "GET" && (r.path == "/" || r.path == "/index.html"))
             return (200, "text/html; charset=utf-8", File.ReadAllBytes(WebPage));
-
-        var pin = r.headers.TryGetValue("X-Exhibit-Pin", out var hp) ? hp : r.Q("pin");
-        if (r.path.StartsWith("/api/") && pin != Pin)
-            return (403, "application/json; charset=utf-8", Json(new ApiResult { ok = false, error = "PIN 碼錯誤" }));
 
         switch (r.path)
         {
@@ -602,7 +588,6 @@ public class ExhibitUploadWindow : EditorWindow
             ExhibitUploadServer.Port = EditorGUILayout.IntField("Port", ExhibitUploadServer.Port);
             ExhibitUploadServer.AllowLan = EditorGUILayout.Toggle(new GUIContent("允許區網連線", "讓同學用自己的手機/筆電連進來（第一次會跳出 Windows 防火牆，請允許）"), ExhibitUploadServer.AllowLan);
         }
-        ExhibitUploadServer.Pin = EditorGUILayout.TextField(new GUIContent("PIN 碼", "同學打開網頁時要輸入"), ExhibitUploadServer.Pin);
         ExhibitUploadServer.AutoSave = EditorGUILayout.Toggle(new GUIContent("每次上傳後自動存檔", "關閉的話需要手動 Ctrl+S"), ExhibitUploadServer.AutoSave);
 
         EditorGUILayout.Space();
@@ -621,7 +606,8 @@ public class ExhibitUploadWindow : EditorWindow
                     EditorGUILayout.SelectableLabel(u, GUILayout.Height(18));
                     if (GUILayout.Button("開啟", GUILayout.Width(50))) Application.OpenURL(u);
                 }
-            EditorGUILayout.HelpBox($"PIN：{ExhibitUploadServer.Pin}\n請保持 Unity 開著「ExhibitionTemplate」場景，且不要在 Play 模式。", MessageType.Info);
+            EditorGUILayout.HelpBox("請保持 Unity 開著「ExhibitionTemplate」場景，且不要在 Play 模式。\n" +
+                                    "知道網址的人都能上傳或清空作品，收完作品請停止伺服器。", MessageType.Info);
         }
 
         EditorGUILayout.Space();
