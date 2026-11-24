@@ -302,7 +302,7 @@ public static class ExhibitUploadServer
     static void EnsureEditable()
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode)
-            throw new Exception("Unity 正在 Play 模式，請老師先停止 Play 再上傳");
+            throw new Exception("Unity 正在 Play 模式，請助教先停止 Play 再上傳");
     }
 
     static Transform Exhibition()
@@ -371,7 +371,7 @@ public static class ExhibitUploadServer
         var g = Exhibition().Find(group);
         if (g == null) throw new Exception("找不到組別 " + group);
 
-        // 放在最後一件作品的右邊、同一個朝向；老師之後可在 Scene 視窗再微調
+        // 放在最後一件作品的右邊、同一個朝向；助教之後可在 Scene 視窗再微調
         var last = Works(g).LastOrDefault();
         Vector3 pos = g.position; Quaternion rot = g.rotation;
         if (last != null)
@@ -382,7 +382,7 @@ public static class ExhibitUploadServer
         }
         var w = ExhibitionTemplateBuilder.CreateWork(g, pos, rot);
         Save(w);
-        AddLog($"＋ {group}/{w.name} 新增（位置請老師在 Scene 視窗確認）");
+        AddLog($"＋ {group}/{w.name} 新增（位置請助教在 Scene 視窗確認）");
         return new ApiResult { message = w.name };
     }
 

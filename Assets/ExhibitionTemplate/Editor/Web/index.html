@@ -212,7 +212,7 @@ function renderGrid() {
   add.className = 'card add';
   add.innerHTML = '<div class="thumb"><span class="ph">＋ 新增作品位置</span></div>';
   add.onclick = async () => {
-    if (!confirm(`要在 ${groupLabel(curGroup)} 新增一個作品位置嗎？\n（會放在最後一件作品旁邊，老師之後可調整位置）`)) return;
+    if (!confirm(`要在 ${groupLabel(curGroup)} 新增一個作品位置嗎？\n（會放在最後一件作品旁邊，助教之後可調整位置）`)) return;
     try { const r = await api('/api/create?' + q({ group: curGroup }), { method: 'POST' }); curWork = r.message; await refresh(); toast(`已新增 ${r.message}`); }
     catch (e) { toast(e.message, true); }
   };
