@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>展覽作品上傳</title>
+<style>
+  :root {
+    --bg: #f4f2ee; --panel: #ffffff; --ink: #1d1d1f; --muted: #6e6b66; --line: #e2ded6;
+    --accent: #2f5d50; --accent-ink: #ffffff; --warn: #b3412e; --empty: #ebe7df;
+    --radius: 14px; --shadow: 0 1px 2px rgba(0,0,0,.05), 0 8px 24px rgba(0,0,0,.06);
+    font-family: "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-size: 15px; }
+  header { padding: 28px 20px 8px; max-width: 1100px; margin: 0 auto; }
+  header h1 { margin: 0; font-size: 26px; letter-spacing: .02em; }
+  header p { margin: 6px 0 0; color: var(--muted); }
+  main { max-width: 1100px; margin: 0 auto; padding: 12px 20px 60px; }
+
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 20px; }
+  .tab { border: 1px solid var(--line); background: var(--panel); padding: 10px 18px; border-radius: 999px;
+         cursor: pointer; font: inherit; font-weight: 600; color: var(--ink); }
+  .tab[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 16px; }
+  .card { background: var(--panel); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden;
+          cursor: pointer; border: 2px solid transparent; transition: transform .12s, border-color .12s; text-align: left;
+          padding: 0; font: inherit; color: inherit; }
+  .card:hover { transform: translateY(-2px); }
+  .card.selected { border-color: var(--accent); }
+  .thumb { aspect-ratio: 4/3; background: var(--empty); display: grid; place-items: center; overflow: hidden; }
+  .thumb img, .thumb video { width: 100%; height: 100%; object-fit: contain; background: #222; }
+  .thumb .ph { color: var(--muted); font-size: 13px; }
+  .meta { padding: 10px 12px 12px; }
+  .meta .id { font-weight: 700; }
+  .meta .t { color: var(--muted); font-size: 13px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--empty); color: var(--muted); margin-left: 6px; font-weight: 600; }
+  .badge.done { background: #dcebe5; color: var(--accent); }
+  .card.add .thumb { background: transparent; border: 2px dashed var(--line); margin: 10px; border-radius: 10px; aspect-ratio: auto; height: calc(100% - 20px); min-height: 150px; }
+  .card.add { box-shadow: none; background: transparent; }
+
+  .editor { margin-top: 28px; background: var(--panel); border-radius: var(--radius); box-shadow: var(--shadow); padding: 22px; }
+  .editor h2 { margin: 0 0 4px; font-size: 20px; }
+  .editor .sub { color: var(--muted); margin: 0 0 18px; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } }
+  label.f { display: block; font-weight: 600; margin: 14px 0 6px; }
+  input[type=text], textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; font: inherit; background: #fff; color: var(--ink); }
+  textarea { min-height: 120px; resize: vertical; }
+  .drop { border: 2px dashed var(--line); border-radius: 12px; padding: 18px; text-align: center; color: var(--muted); cursor: pointer; background: #faf9f6; }
+  .drop.over { border-color: var(--accent); background: #eef5f2; }
+  .drop .preview { max-width: 100%; max-height: 260px; margin-top: 10px; border-radius: 8px; display: none; }
+  .row { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; margin-top: 10px; color: var(--muted); font-size: 14px; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+  .seg button { border: 0; background: #fff; padding: 7px 14px; font: inherit; cursor: pointer; color: var(--ink); }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+  canvas#labelCanvas { width: 100%; max-height: 380px; object-fit: contain; border: 1px solid var(--line); border-radius: 8px; background: #fff; display: block; margin-top: 10px; }
+  .actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 22px; align-items: center; }
+  .btn { border: 0; border-radius: 10px; padding: 12px 22px; font: inherit; font-weight: 700; cursor: pointer; }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); }
+  .btn.ghost { background: transparent; color: var(--warn); border: 1px solid var(--line); }
+  .btn:disabled { opacity: .5; cursor: progress; }
+  progress { width: 220px; height: 10px; display: none; }
+  .hint { color: var(--muted); font-size: 13px; margin-top: 6px; }
+
+  .gate { max-width: 360px; margin: 12vh auto; background: var(--panel); padding: 28px; border-radius: var(--radius); box-shadow: var(--shadow); text-align: center; }
+  .gate input { text-align: center; font-size: 24px; letter-spacing: .3em; margin: 14px 0; }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--ink); color: #fff;
+           padding: 12px 20px; border-radius: 10px; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: 90vw; }
+  .toast.show { opacity: 1; }
+  .toast.err { background: var(--warn); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="gate" id="gate">
+  <h2 style="margin:0">展覽作品上傳</h2>
+  <p style="color:var(--muted)">請輸入老師提供的 PIN 碼</p>
+  <input type="text" id="pinInput" inputmode="numeric" autocomplete="off" maxlength="8">
+  <button class="btn primary" id="pinBtn" style="width:100%">進入</button>
+</div>
+
+<div id="app" hidden>
+  <header>
+    <h1>展覽作品上傳</h1>
+    <p>選擇你的組別與作品位置，上傳後會直接更新到 Unity 展場。</p>
+  </header>
+  <main>
+    <div class="tabs" id="tabs" role="tablist"></div>
+    <div class="grid" id="grid"></div>
+
+    <section class="editor" id="editor" hidden>
+      <h2 id="edTitle"></h2>
+      <p class="sub" id="edSub"></p>
+      <div class="cols">
+        <div>
+          <label class="f" for="fTitle">作品名稱</label>
+          <input type="text" id="fTitle" placeholder="例如：光與壑 Where Light Flows">
+          <label class="f" for="fArtist">作者</label>
+          <input type="text" id="fArtist" placeholder="姓名（多人請用頓號分隔）">
+          <label class="f" for="fDesc">作品說明</label>
+          <textarea id="fDesc" placeholder="作品理念、媒材、尺寸…"></textarea>
+
+          <label class="f">作品檔案（展板）</label>
+          <div class="drop" id="boardDrop" tabindex="0">
+            <div id="boardDropText">點擊或拖曳圖片 / 影片到這裡<br><small>PNG、JPG、MP4（建議 H.264，Quest 才能播放）</small></div>
+            <img class="preview" id="boardPrevImg" alt="">
+            <video class="preview" id="boardPrevVid" muted loop playsinline></video>
+          </div>
+          <input type="file" id="boardFile" accept=".png,.jpg,.jpeg,.mp4,.mov,.webm" hidden>
+          <div class="row">
+            <label><input type="checkbox" id="fFit" checked> 展板依作品比例調整</label>
+            <label id="audioWrap" hidden><input type="checkbox" id="fAudio"> 播放影片聲音</label>
+          </div>
+        </div>
+
+        <div>
+          <label class="f">說明牌</label>
+          <div class="seg" role="group">
+            <button type="button" id="modeAuto" aria-pressed="true">依文字自動產生</button>
+            <button type="button" id="modeUpload" aria-pressed="false">上傳自己的圖</button>
+          </div>
+          <div id="autoPane">
+            <canvas id="labelCanvas"></canvas>
+            <p class="hint">預覽會依照左邊的文字即時更新，比例與展場中的說明牌相同。</p>
+          </div>
+          <div id="uploadPane" hidden>
+            <div class="drop" id="labelDrop" tabindex="0" style="margin-top:10px">
+              <div>點擊或拖曳說明牌圖片（PNG / JPG）</div>
+              <img class="preview" id="labelPrevImg" alt="">
+            </div>
+            <input type="file" id="labelFile" accept=".png,.jpg,.jpeg" hidden>
+          </div>
+          <p class="hint" id="noLabelHint" hidden>這個位置沒有說明牌。</p>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn primary" id="saveBtn">儲存到 Unity</button>
+        <progress id="prog" max="1" value="0"></progress>
+        <span class="hint" id="status"></span>
+        <span style="flex:1"></span>
+        <button class="btn ghost" id="resetBtn">清空這個作品</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+let PIN = localStorage.getItem('exhibitPin') || '';
+let state = null, curGroup = null, curWork = null;
+let boardFile = null, labelFile = null, labelMode = 'auto';
+
+// ───────── API ─────────
+async function api(path, opts = {}) {
+  const res = await fetch(path, { ...opts, headers: { 'X-Exhibit-Pin': PIN, ...(opts.headers || {}) } });
+  let data; try { data = await res.json(); } catch { throw new Error('伺服器回應錯誤（Unity 是否開著？）'); }
+  if (res.status === 403) { showGate('PIN 碼錯誤'); throw new Error(data.error); }
+  if (!data.ok) throw new Error(data.error || '發生錯誤');
+  return data;
+}
+const q = o => Object.entries(o).map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+const fileUrl = p => `/api/file?${q({ path: p, pin: PIN, t: Date.now() })}`;
+
+// 大檔案用 XHR 才能顯示進度
+function upload(params, blob, name) {
+  return new Promise((resolve, reject) => {
+    const x = new XMLHttpRequest();
+    x.open('POST', '/api/upload?' + q({ ...params, name }));
+    x.setRequestHeader('X-Exhibit-Pin', PIN);
+    x.upload.onprogress = e => { if (e.lengthComputable) { $('prog').value = e.loaded / e.total; } };
+    x.onload = () => {
+      let d; try { d = JSON.parse(x.responseText); } catch { return reject(new Error('伺服器回應錯誤')); }
+      d.ok ? resolve(d) : reject(new Error(d.error));
+    };
+    x.onerror = () => reject(new Error('連線中斷'));
+    x.send(blob);
+  });
+}
+
+// ───────── PIN ─────────
+function showGate(msg) {
+  $('app').hidden = true; $('gate').hidden = false;
+  if (msg) toast(msg, true);
+  $('pinInput').focus();
+}
+$('pinBtn').onclick = async () => {
+  PIN = $('pinInput').value.trim();
+  try { await refresh(); localStorage.setItem('exhibitPin', PIN); $('gate').hidden = true; $('app').hidden = false; }
+  catch (e) { toast(e.message, true); }
+};
+$('pinInput').onkeydown = e => { if (e.key === 'Enter') $('pinBtn').click(); };
+
+// ───────── 列表 ─────────
+async function refresh() {
+  state = await api('/api/state');
+  if (!curGroup || !state.groups.some(g => g.name === curGroup)) curGroup = state.groups[0]?.name;
+  renderTabs(); renderGrid();
+  if (curWork) { const w = findWork(); w ? openEditor(w, false) : closeEditor(); }
+}
+const group = () => state.groups.find(g => g.name === curGroup);
+const findWork = () => group()?.works.find(w => w.id === curWork);
+const groupLabel = n => n.replace(/^group(\d+)$/i, 'Group $1');
+
+function renderTabs() {
+  $('tabs').innerHTML = '';
+  for (const g of state.groups) {
+    const b = document.createElement('button');
+    b.className = 'tab'; b.role = 'tab'; b.textContent = groupLabel(g.name);
+    b.setAttribute('aria-selected', g.name === curGroup);
+    b.onclick = () => { curGroup = g.name; curWork = null; closeEditor(); renderTabs(); renderGrid(); };
+    $('tabs').appendChild(b);
+  }
+}
+
+function renderGrid() {
+  const grid = $('grid'); grid.innerHTML = '';
+  for (const w of group().works) {
+    const c = document.createElement('button');
+    c.className = 'card' + (w.id === curWork ? ' selected' : '');
+    const done = !!w.boardMedia;
+    let thumb = '<span class="ph">空白</span>';
+    if (w.boardType === 'image') thumb = `<img src="${fileUrl(w.boardMedia)}" alt="">`;
+    if (w.boardType === 'video') thumb = `<video src="${fileUrl(w.boardMedia)}" muted preload="metadata"></video>`;
+    c.innerHTML = `<div class="thumb">${thumb}</div>
+      <div class="meta"><div class="id">${esc(w.id)}<span class="badge ${done ? 'done' : ''}">${done ? '已放入' : '空位'}</span></div>
+      <div class="t">${esc([w.title, w.artist].filter(Boolean).join(' — ') || '尚未填寫')}</div></div>`;
+    c.onclick = () => { curWork = w.id; renderGrid(); openEditor(w, true); };
+    grid.appendChild(c);
+  }
+  const add = document.createElement('button');
+  add.className = 'card add';
+  add.innerHTML = '<div class="thumb"><span class="ph">＋ 新增作品位置</span></div>';
+  add.onclick = async () => {
+    if (!confirm(`要在 ${groupLabel(curGroup)} 新增一個作品位置嗎？\n（會放在最後一件作品旁邊，老師之後可調整位置）`)) return;
+    try { const r = await api('/api/create?' + q({ group: curGroup }), { method: 'POST' }); curWork = r.message; await refresh(); toast(`已新增 ${r.message}`); }
+    catch (e) { toast(e.message, true); }
+  };
+  grid.appendChild(add);
+}
+
+// ───────── 編輯 ─────────
+function openEditor(w, reset) {
+  $('editor').hidden = false;
+  $('edTitle').textContent = `${groupLabel(curGroup)} ／ ${w.id}`;
+  $('edSub').textContent = w.boardMedia ? `目前檔案：${w.boardMedia.split('/').pop()}` : '這個位置還是空的';
+  if (reset) {
+    $('fTitle').value = w.title || ''; $('fArtist').value = w.artist || ''; $('fDesc').value = w.description || '';
+    boardFile = null; labelFile = null;
+    setPreview('board', w.boardType === 'image' ? fileUrl(w.boardMedia) : null, w.boardType === 'video' ? fileUrl(w.boardMedia) : null);
+    setPreview('label', w.labelMedia ? fileUrl(w.labelMedia) : null);
+    $('audioWrap').hidden = w.boardType !== 'video';
+    $('editor').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  const hasLabel = w.hasLabel;
+  document.querySelector('.seg').hidden = !hasLabel; $('autoPane').hidden = !hasLabel || labelMode !== 'auto';
+  $('uploadPane').hidden = !hasLabel || labelMode !== 'upload'; $('noLabelHint').hidden = hasLabel;
+  drawLabel();
+}
+function closeEditor() { $('editor').hidden = true; }
+
+function setPreview(kind, imgUrl, vidUrl) {
+  const img = $(kind + 'PrevImg'); img.style.display = imgUrl ? 'inline-block' : 'none'; if (imgUrl) img.src = imgUrl;
+  const vid = $(kind + 'PrevVid');
+  if (vid) { vid.style.display = vidUrl ? 'inline-block' : 'none'; if (vidUrl) { vid.src = vidUrl; vid.play().catch(() => {}); } else vid.removeAttribute('src'); }
+}
+
+function wireDrop(dropId, inputId, onFile) {
+  const d = $(dropId), inp = $(inputId);
+  d.onclick = () => inp.click();
+  d.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') inp.click(); };
+  inp.onchange = () => inp.files[0] && onFile(inp.files[0]);
+  d.ondragover = e => { e.preventDefault(); d.classList.add('over'); };
+  d.ondragleave = () => d.classList.remove('over');
+  d.ondrop = e => { e.preventDefault(); d.classList.remove('over'); e.dataTransfer.files[0] && onFile(e.dataTransfer.files[0]); };
+}
+wireDrop('boardDrop', 'boardFile', f => {
+  const isVid = /\.(mp4|mov|webm)$/i.test(f.name);
+  if (!isVid && !/\.(png|jpe?g)$/i.test(f.name)) return toast('只支援 PNG / JPG / MP4 / MOV / WEBM', true);
+  boardFile = f;
+  const url = URL.createObjectURL(f);
+  setPreview('board', isVid ? null : url, isVid ? url : null);
+  $('audioWrap').hidden = !isVid;
+});
+wireDrop('labelDrop', 'labelFile', f => {
+  if (!/\.(png|jpe?g)$/i.test(f.name)) return toast('說明牌只支援 PNG / JPG', true);
+  labelFile = f; setPreview('label', URL.createObjectURL(f));
+});
+
+function setMode(m) {
+  labelMode = m;
+  $('modeAuto').setAttribute('aria-pressed', m === 'auto'); $('modeUpload').setAttribute('aria-pressed', m === 'upload');
+  $('autoPane').hidden = m !== 'auto'; $('uploadPane').hidden = m !== 'upload';
+  drawLabel();
+}
+$('modeAuto').onclick = () => setMode('auto');
+$('modeUpload').onclick = () => setMode('upload');
+['fTitle', 'fArtist', 'fDesc'].forEach(id => $(id).addEventListener('input', drawLabel));
+
+// ───────── 說明牌排版（canvas） ─────────
+const FONT = '"Noto Sans TC", "Microsoft JhengHei", "PingFang TC", sans-serif';
+// 中文逐字斷行、英文以單字斷行
+function wrap(ctx, text, maxW) {
+  const lines = [];
+  for (const para of text.split('\n')) {
+    const tokens = para.match(/[⺀-鿿豈-﫿＀-￯　-〿]|[^\s⺀-鿿豈-﫿＀-￯　-〿]+|\s+/g) || [''];
+    let line = '';
+    for (const t of tokens) {
+      const test = line + t;
+      if (ctx.measureText(test).width > maxW && line.trim()) { lines.push(line.trimEnd()); line = t.trimStart(); }
+      else line = test;
+    }
+    lines.push(line.trimEnd());
+  }
+  return lines;
+}
+
+function drawLabel() {
+  const w = findWork(); if (!w || !w.hasLabel) return;
+  const cv = $('labelCanvas'), ctx = cv.getContext('2d');
+  const aspect = (w.labelW || 0.6) / (w.labelH || 0.8);
+  const H = 1600, W = Math.round(H * aspect);
+  cv.width = W; cv.height = H;
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+
+  const pad = Math.round(W * 0.09), maxW = W - pad * 2;
+  const title = $('fTitle').value.trim() || '作品名稱';
+  const artist = $('fArtist').value.trim() || '作者';
+  const desc = $('fDesc').value.trim();
+  const base = Math.min(W, H * 0.75);
+
+  let y = pad;
+  ctx.fillStyle = '#1d1d1f'; ctx.textBaseline = 'top';
+  let ts = base * 0.085;
+  ctx.font = `700 ${ts}px ${FONT}`;
+  for (const l of wrap(ctx, title, maxW)) { ctx.fillText(l, pad, y); y += ts * 1.3; }
+  y += ts * 0.2;
+  const as = base * 0.05;
+  ctx.font = `500 ${as}px ${FONT}`; ctx.fillStyle = '#55524d';
+  for (const l of wrap(ctx, artist, maxW)) { ctx.fillText(l, pad, y); y += as * 1.4; }
+  y += as * 0.6;
+  ctx.fillStyle = '#2f5d50'; ctx.fillRect(pad, y, Math.min(maxW, W * 0.18), Math.max(3, H * 0.004));
+  y += as * 1.2;
+
+  // 說明文字太長就縮小字級，確保放得進說明牌
+  const footer = H - pad - base * 0.035 * 1.6;
+  let ds = base * 0.042, lines;
+  ctx.fillStyle = '#1d1d1f';
+  for (; ds > base * 0.018; ds *= 0.92) {
+    ctx.font = `400 ${ds}px ${FONT}`;
+    lines = desc ? wrap(ctx, desc, maxW) : [];
+    if (y + lines.length * ds * 1.65 <= footer) break;
+  }
+  for (const l of lines) { ctx.fillText(l, pad, y); y += ds * 1.65; }
+
+  const fs = base * 0.035;
+  ctx.font = `500 ${fs}px ${FONT}`; ctx.fillStyle = '#8a867f';
+  ctx.fillText(`${groupLabel(curGroup)}　${w.id}`, pad, H - pad - fs);
+}
+
+// ───────── 儲存 / 清空 ─────────
+$('saveBtn').onclick = async () => {
+  const w = findWork(); if (!w) return;
+  const base = { group: curGroup, work: w.id };
+  setBusy(true);
+  try {
+    status('儲存作品資訊…');
+    await api('/api/meta?' + q(base), { method: 'POST', body: JSON.stringify({ title: $('fTitle').value, artist: $('fArtist').value, description: $('fDesc').value }) });
+
+    if (boardFile) {
+      status(`上傳作品檔（${(boardFile.size / 1048576).toFixed(1)} MB），Unity 匯入中…`);
+      await upload({ ...base, slot: 'board', fit: $('fFit').checked ? 1 : 0, audio: $('fAudio').checked ? 1 : 0 }, boardFile, boardFile.name);
+    }
+    if (w.hasLabel) {
+      if (labelMode === 'auto') {
+        status('產生說明牌…'); drawLabel();
+        const blob = await new Promise(r => $('labelCanvas').toBlob(r, 'image/png'));
+        await upload({ ...base, slot: 'label', fit: 0 }, blob, 'label.png');
+      } else if (labelFile) {
+        status('上傳說明牌…');
+        await upload({ ...base, slot: 'label', fit: 1 }, labelFile, labelFile.name);
+      }
+    }
+    boardFile = labelFile = null;
+    await refresh();
+    openEditor(findWork(), true);
+    toast('已更新到 Unity ✔');
+    status('');
+  } catch (e) { toast(e.message, true); status(''); }
+  finally { setBusy(false); }
+};
+
+$('resetBtn').onclick = async () => {
+  const w = findWork(); if (!w) return;
+  if (!confirm(`確定要清空 ${w.id}？\n作品檔、說明牌與資料都會從 Unity 移除。`)) return;
+  setBusy(true);
+  try { await api('/api/reset?' + q({ group: curGroup, work: w.id }), { method: 'POST' }); await refresh(); openEditor(findWork(), true); toast('已清空'); }
+  catch (e) { toast(e.message, true); }
+  finally { setBusy(false); }
+};
+
+function setBusy(b) { $('saveBtn').disabled = $('resetBtn').disabled = b; $('prog').style.display = b ? 'inline-block' : 'none'; $('prog').value = 0; }
+function status(s) { $('status').textContent = s; }
+let toastTimer;
+function toast(msg, err) { const t = $('toast'); t.textContent = msg; t.className = 'toast show' + (err ? ' err' : ''); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.className = 'toast', 3500); }
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+// 啟動：有記住的 PIN 就直接進
+(async () => {
+  if (!PIN) return showGate();
+  try { await refresh(); $('gate').hidden = true; $('app').hidden = false; }
+  catch (e) { showGate(e.message); }
+})();
+</script>
+</body>
+</html>

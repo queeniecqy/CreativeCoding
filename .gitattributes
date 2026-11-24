@@ -1,0 +1,39 @@
+# 自動偵測文字檔
+* text=auto
+
+# Unity YAML：固定 LF，合併時可使用 Unity 的 UnityYAMLMerge（Smart Merge）
+*.unity    text eol=lf merge=unityyamlmerge
+*.prefab   text eol=lf merge=unityyamlmerge
+*.asset    text eol=lf merge=unityyamlmerge
+*.mat      text eol=lf merge=unityyamlmerge
+*.anim     text eol=lf merge=unityyamlmerge
+*.controller text eol=lf merge=unityyamlmerge
+*.meta     text eol=lf
+*.cs       text diff=csharp
+*.shader   text
+*.asmdef   text
+*.json     text
+*.md       text
+
+# 二進位檔
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.tga  binary
+*.psd  binary
+*.exr  binary
+*.mp4  binary
+*.mov  binary
+*.webm binary
+*.wav  binary
+*.mp3  binary
+*.ogg  binary
+*.fbx  binary
+*.obj  binary
+*.glb  binary
+*.ttf  binary
+*.otf  binary
+*.dll  binary
+*.so   binary
+*.aar  binary
+*.jar  binary

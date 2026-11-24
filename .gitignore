@@ -1,0 +1,54 @@
+# ── Unity 自動產生（每台電腦打開專案時會自己重建） ──
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+/.utmp/
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.csproj
+*.sln
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# 建置輸出
+*.apk
+*.aab
+*.unitypackage
+*.app
+crashlytics-build.properties
+/[Aa]ssets/[Ss]treamingAssets/aa/
+
+# ── 本機備份與工具暫存（不屬於模板） ──
+/_unused_backup/
+/_unused_backup_清單.txt
+/_broken_media_backup/
+/_dup_scripts_backup/
+/_meta_guid_backup/
+/_truncated_backup/
+/.omc/
+/.remember/
+/.playwright-mcp/
+/Assets/.omc/
+/Assets/.omc.meta
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
